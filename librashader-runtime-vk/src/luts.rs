@@ -6,8 +6,10 @@ use ash::vk;
 use librashader_presets::TextureMeta;
 use librashader_runtime::image::{Image, BGRA8};
 use librashader_runtime::scaling::MipmapSize;
+use std::sync::Arc;
 
 pub(crate) struct LutTexture {
+    device: Arc<ash::Device>,
     _memory: VulkanImageMemory,
     _staging: VulkanBuffer,
     pub image: InputImage,
@@ -209,6 +211,7 @@ impl LutTexture {
         }
 
         Ok(LutTexture {
+            device: Arc::clone(&vulkan.device),
             _memory: memory,
             _staging: staging,
             image: InputImage {
@@ -223,6 +226,16 @@ impl LutTexture {
                 mip_filter: config.filter_mode,
             },
         })
+    }
+}
+
+impl Drop for LutTexture {
+    fn drop(&mut self) {
+        // The memory is freed after, as the fields drop.
+        unsafe {
+            self.device.destroy_image_view(self.image.image_view, None);
+            self.device.destroy_image(self.image.image.image, None);
+        }
     }
 }
 
