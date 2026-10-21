@@ -178,15 +178,24 @@ impl FilterPass {
                 );
             }
 
+            // Scissor offsets may not be negative: a viewport overhanging the output's top or
+            // left edge is cropped there.
+            let left = (output.x as i64).max(0);
+            let top = (output.y as i64).max(0);
+            let right = output.x as i64 + i64::from(output.size.width);
+            let bottom = output.y as i64 + i64::from(output.size.height);
             parent.device.cmd_set_scissor(
                 cmd,
                 0,
                 &[vk::Rect2D {
                     offset: vk::Offset2D {
-                        x: output.x as i32,
-                        y: output.y as i32,
+                        x: left as i32,
+                        y: top as i32,
                     },
-                    extent: output.size.into(),
+                    extent: vk::Extent2D {
+                        width: (right - left).max(0) as u32,
+                        height: (bottom - top).max(0) as u32,
+                    },
                 }],
             );
 
